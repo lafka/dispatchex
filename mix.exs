@@ -2,7 +2,7 @@ defmodule DispatchEx.MixProject do
   use Mix.Project
 
   def project do
-    version = "0.1.1"
+    version = "0.1.2"
 
     [
       app: :dispatchex,
@@ -52,7 +52,7 @@ defmodule DispatchEx.MixProject do
 
     [
       extras: ["README.md", "LICENSE", "CHANGELOG.md"],
-      main: "README.md",
+      main: "readme",
       source_ref: "v#{version}"
     ]
   end

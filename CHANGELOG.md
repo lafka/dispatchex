@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.2] - 2022-10-05
+
+### Fixes
+
+Correct ExDocs and links to git.
+
 ## [0.1.1] - 2022-10-05
 
 ### Fixes
