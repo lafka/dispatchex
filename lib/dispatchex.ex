@@ -59,11 +59,9 @@ defmodule DispatchEx do
 
   defmacro def(call, expr \\ nil) do
     call = Macro.expand(call, __CALLER__)
-    resolved = Macro.expand(expr, __CALLER__)
-    escaped = Macro.escape({:def, [], [call, resolved]}, prune_metadata: true)
 
     quote location: :keep do
-      @__impl__ unquote(escaped)
+      @__impl__ unquote(Macro.escape(call))
       Kernel.def(unquote(call), unquote(expr))
     end
   end

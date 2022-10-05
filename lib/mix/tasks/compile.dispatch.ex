@@ -46,23 +46,40 @@ defmodule Mix.Tasks.Compile.Dispatch do
         end
 
       {:ok, ast} = Code.string_to_quoted(File.read!(source))
-      {:defmodule, env, [aliases, [do: {:__block__, [], items}]]} = ast
-      callbacks = proto.behaviour_info(:callbacks)
+      {:defmodule, env, [aliases, [do: {:__block__, [], module_body}]]} = ast
 
-      {implemented, others} =
-        Enum.split_with(items, fn
-          {:def, _, [{fun, _, args} | _]} ->
-            Enum.member?(callbacks, {fun, length(args)})
+      callbacks =
+        for {fun, ar} <- proto.behaviour_info(:callbacks), into: %{}, do: {"#{fun}/#{ar}", []}
 
-          _ ->
-            false
+      # Split non-callbacks and callbacks by their signature.
+      {defast, callbacks} =
+        Enum.reduce(module_body, {[], callbacks}, fn
+          {:def, _env1, [{fun, _env2, args} | _] = fallback}, {defast, callbacks} ->
+            key = "#{fun}/#{length(args)}"
+            callbacks = %{callbacks | key => [{:def, [], fallback}]}
+            {defast, callbacks}
+
+          node, {defast, callbacks} ->
+            {defast ++ [node], callbacks}
         end)
 
-      newmodule = others ++ defs ++ implemented
+      # Prepend all known callbacks
+      callbacks =
+        Enum.reduce(defs, callbacks, fn {sig, clauses}, acc ->
+          # Turn it into a remote call
+          clauses =
+            for {:remote, {mod, fun, args}, clause} <- clauses do
+              body = [do: {{:., [], [mod, fun]}, [], args}]
+              {:def, [], [clause, body]}
+            end
 
-      amended = {:defmodule, env, [aliases, [do: {:__block__, [], newmodule}]]}
+          %{acc | sig => clauses ++ acc[sig]}
+        end)
 
-      IO.puts Macro.to_string(amended)
+      callbacksast = for {_, v} <- callbacks, do: v
+      newast = defast ++ List.flatten(callbacksast)
+
+      amended = {:defmodule, env, [aliases, [do: {:__block__, [], newast}]]}
 
       # Attempt to remove the code to avoid warning,
       _ = :code.purge(proto)
@@ -77,9 +94,61 @@ defmodule Mix.Tasks.Compile.Dispatch do
   defp consolidate(protocols) do
     Enum.map(protocols, fn {protocol, impls} ->
       defs =
-        Enum.flat_map(impls, fn impl ->
+        Enum.reduce(impls, %{}, fn impl, acc ->
           List.flatten(Keyword.get_values(impl.__info__(:attributes), :__impl__))
+          |> Enum.reduce(acc, fn
+            {fun, _env, []}, _inner ->
+              raise ArgumentError, """
+              Dispatch implentation #{impl}.#{fun}/0 takes no arguments. This is an error.
+              All implemntations require atleast one argument...
+              """
+
+            {fun, env, args}, inner ->
+              key = "#{fun}/#{length(args)}"
+              inner = Map.put_new(inner, key, [])
+
+              # remove unused variable warning by collecting the variables and seeing
+              # which can be removed
+              {_node, used} = Macro.prewalk(args, [], fn
+                {k, _env, nil} = node, acc when is_atom(k) ->
+                  case "#{k}" do
+                    "_" <> _  -> {node, acc}
+                    _ -> {node, [k|acc]}
+                  end
+                node, acc -> {node, acc}
+              end)
+
+              # A variable is unique if its not refered by anything else in the function header
+              keep = Enum.uniq(used -- Enum.uniq(used))
+
+              # Prefix unused variables with undrescore
+              args =
+                Macro.prewalk(args, fn
+                  {k, env, nil} = node ->
+                    if not Enum.member?(keep, k) do
+                      {:"_#{k}", env, nil}
+                    else
+                      node
+                    end
+
+                  node ->
+                    node
+                end)
+
+              uniqueargs = Macro.generate_unique_arguments(length(args), protocol)
+              nextargs =
+                Enum.map(
+                  Enum.zip(uniqueargs, args),
+                  fn {unique, node} ->
+                    {:=, [], [node, unique]}
+                  end
+                )
+
+              callback = {:remote, {impl, fun, uniqueargs}, {fun, env, nextargs}}
+              %{inner | key => [callback | inner[key]]}
+          end)
         end)
+
       {protocol, defs}
     end)
   end
