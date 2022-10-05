@@ -109,14 +109,17 @@ defmodule Mix.Tasks.Compile.Dispatch do
 
               # remove unused variable warning by collecting the variables and seeing
               # which can be removed
-              {_node, used} = Macro.prewalk(args, [], fn
-                {k, _env, nil} = node, acc when is_atom(k) ->
-                  case "#{k}" do
-                    "_" <> _  -> {node, acc}
-                    _ -> {node, [k|acc]}
-                  end
-                node, acc -> {node, acc}
-              end)
+              {_node, used} =
+                Macro.prewalk(args, [], fn
+                  {k, _env, nil} = node, acc when is_atom(k) ->
+                    case "#{k}" do
+                      "_" <> _ -> {node, acc}
+                      _ -> {node, [k | acc]}
+                    end
+
+                  node, acc ->
+                    {node, acc}
+                end)
 
               # A variable is unique if its not refered by anything else in the function header
               keep = Enum.uniq(used -- Enum.uniq(used))
@@ -136,6 +139,7 @@ defmodule Mix.Tasks.Compile.Dispatch do
                 end)
 
               uniqueargs = Macro.generate_unique_arguments(length(args), protocol)
+
               nextargs =
                 Enum.map(
                   Enum.zip(uniqueargs, args),

@@ -2,9 +2,11 @@ defmodule DispatchEx.MixProject do
   use Mix.Project
 
   def project do
+    version = "0.1.1"
+
     [
       app: :dispatchex,
-      version: "0.1.1",
+      version: version,
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -13,14 +15,17 @@ defmodule DispatchEx.MixProject do
       description: description(),
       source_url: "https://github.com/lafka/dispatchex",
       package: package(),
+      fetch: fetch(version),
+      docs: docs(version)
     ]
   end
 
-  def application, do:  [ ]
+  def application, do: []
 
-  defp deps, do:  [
-    {:ex_doc, "~> 0.14", only: :dev, runtime: false}
-  ]
+  defp deps,
+    do: [
+      {:ex_doc, "~> 0.14", only: :dev, runtime: false}
+    ]
 
   defp description() do
     """
@@ -36,6 +41,19 @@ defmodule DispatchEx.MixProject do
       files: ~w(lib .formatter.exs mix.exs README* LICENSE* CHANGELOG*),
       licenses: ["BSD-3-Clause"],
       links: %{"GitHub" => "https://github.com/lafka/dispatchex"}
+    ]
+  end
+
+  defp fetch(version) do
+    [scm: :git, url: "git://github.com/lafka/dispatchex.git", tag: "v#{version}"]
+  end
+
+  defp docs(version) do
+
+    [
+      extras: ["README.md", "LICENSE", "CHANGELOG.md"],
+      main: "README.md",
+      source_ref: "v#{version}"
     ]
   end
 end
