@@ -4,15 +4,38 @@ defmodule DispatchEx.MixProject do
   def project do
     [
       app: :dispatchex,
-      version: "0.1.0",
+      version: "0.1.1",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      compilers: Mix.compilers() ++ [:dispatch]
+      compilers: Mix.compilers() ++ [:dispatch],
+      name: "DispatchEx",
+      description: description(),
+      source_url: "https://github.com/lafka/dispatchex",
+      package: package(),
     ]
   end
 
   def application, do:  [ ]
 
-  defp deps, do:  [ ]
+  defp deps, do:  [
+    {:ex_doc, "~> 0.14", only: :dev, runtime: false}
+  ]
+
+  defp description() do
+    """
+    Pattern matchable protocols
+    """
+  end
+
+  defp package() do
+    [
+      # This option is only needed when you don't want to use the OTP application name
+      name: "dispatchex",
+      # These are the default files included in the package
+      files: ~w(lib .formatter.exs mix.exs README* LICENSE* CHANGELOG*),
+      licenses: ["BSD-3-Clause"],
+      links: %{"GitHub" => "https://github.com/lafka/dispatchex"}
+    ]
+  end
 end
