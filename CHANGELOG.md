@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3] - 2022-11-21
+
+### Improvements
+
+ * Allow explicit inclusion of dependency
+ * Add minimal logging
+
 ## [0.1.2] - 2022-10-05
 
 ### Fixes
