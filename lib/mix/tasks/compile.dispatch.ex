@@ -31,7 +31,9 @@ defmodule Mix.Tasks.Compile.Dispatch do
     # by removing all of the callback functions defined in behaviour
     # and then injecting the defs.
 
+    IO.puts :stderr, "=> Searching AST"
     Enum.each(ast, fn {proto, defs} ->
+      IO.puts :stderr, "=> Proto #{proto}"
       source = "#{proto.module_info(:compile)[:source]}"
 
       output =
@@ -87,6 +89,9 @@ defmodule Mix.Tasks.Compile.Dispatch do
 
       [{_, buf}] = Code.compile_quoted(amended, source)
 
+      for {e, cases} <- defs do
+        IO.puts :stderr, "=> Rewrite #{proto}.#{e} :: #{length cases} cases"
+      end
       File.write!(output, buf)
     end)
   end
@@ -168,6 +173,7 @@ defmodule Mix.Tasks.Compile.Dispatch do
 
     :ok = ensure_all_files_loaded(apps)
 
+    IO.puts :stderr, "=> Searching #{length apps} apps: #{Enum.join(apps, ", ")}"
     for protocol <- dispatchable(config), into: %{} do
       {protocol, get_protocol_implementations(config, protocol)}
     end
