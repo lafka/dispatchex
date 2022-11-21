@@ -164,7 +164,7 @@ defmodule Mix.Tasks.Compile.Dispatch do
 
   defp implementations(config) do
     apps =
-      for app <- deps(config) do
+      for app <- deps(config), app do
         # this may fail for uncompiled applications in a umbrella project, in which
         # case it can be ignored since :dispatch compiler will re-run later if required.
         _ = Application.ensure_loaded(app)
@@ -238,7 +238,9 @@ defmodule Mix.Tasks.Compile.Dispatch do
   end
 
   defp deps(config) do
-    deps = for %{scm: scm} = dep <- Mix.Dep.cached(), not scm.fetchable?, do: dep.app
+    deps = for %{scm: scm} = dep <- Mix.Dep.cached(),
+               Keyword.get(dep.opts, :dispatchex, not scm.fetchable?),
+               do: dep.app
     Enum.uniq([config[:app] | deps])
   end
 end
